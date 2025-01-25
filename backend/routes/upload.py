@@ -4,9 +4,16 @@ from services.anonymizer import anonymize_text_with_huggingface
 # Blueprint for the upload route
 upload_bp = Blueprint("upload", __name__)
 
-@upload_bp.route("/anonymize", methods=["POST"])
+@upload_bp.route("/api/anonymize", methods=["OPTIONS", "POST"])
 def anonymize_text():
-    # Get text input from the user
+    if request.method == "OPTIONS":
+        # Allow preflight requests
+        response = jsonify({"message": "Preflight check successful"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response, 200
+
     data = request.json
     text = data.get("text", "")
 
@@ -14,15 +21,10 @@ def anonymize_text():
         return jsonify({"error": "No text provided"}), 400
 
     try:
-        # Chunk the text for anonymization
-        anonymized_text = ""
-        chunk_size = 1000  # Split text into chunks of 1000 characters
-        for i in range(0, len(text), chunk_size):
-            chunk = text[i:i + chunk_size]
-            anonymized_chunk = anonymize_text_with_huggingface(chunk)
-            anonymized_text += anonymized_chunk + "\n"
-
-        # Return anonymized text
-        return jsonify({"message": "Text anonymized successfully", "anonymized_text": anonymized_text}), 200
+        anonymized_text = anonymize_text_with_huggingface(text)
+        return jsonify({
+            "message": "Text anonymized successfully",
+            "anonymized_text": anonymized_text
+        }), 200
     except Exception as e:
         return jsonify({"error": f"Failed to anonymize text: {str(e)}"}), 500
