@@ -9,9 +9,22 @@ print("Numpy Version:", np.__version__)
 ner_pipeline = pipeline("ner", model="dbmdz/bert-large-cased-finetuned-conll03-english", grouped_entities=True)
 
 def preprocess_text(text):
-    """Normalize whitespace and capitalize the input text."""
+    """Normalize whitespace and retain capitalization."""
     normalized_text = " ".join(text.split())
-    return normalized_text.title()  # Capitalize each word
+    return normalized_text  # Keep original capitalization
+
+def is_valid_entity(entity_text, text):
+    """
+    Validate entity to avoid over-redaction but ensure valid names/identifiers are included.
+    """
+    # Allow very short entities if they are standalone words
+    if len(entity_text) < 3:
+        word_boundary = r'\b' + re.escape(entity_text) + r'\b'
+        return bool(re.search(word_boundary, text))
+    
+    # For longer entities, ensure they are meaningful by matching full words
+    word_boundary = r'\b' + re.escape(entity_text) + r'\b'
+    return bool(re.search(word_boundary, text, re.IGNORECASE))
 
 def anonymize_text_with_huggingface(text):
     """Anonymize sensitive information using Hugging Face NER."""
@@ -26,10 +39,11 @@ def anonymize_text_with_huggingface(text):
     for entity in ner_results:
         entity_text = entity["word"]
         entity_label = entity["entity_group"]
-        if entity_label in ["PER", "LOC", "ORG", "MISC"]:
-            # Replace all instances of the entity, regardless of case
+        
+        if entity_label in ["PER", "LOC", "ORG", "MISC"] and is_valid_entity(entity_text, preprocessed_text):
+            # Replace all valid instances of the entity
             redacted_text = re.sub(
-                re.escape(entity_text), 
+                r'\b' + re.escape(entity_text) + r'\b', 
                 f"[REDACTED {entity_label}]", 
                 redacted_text, 
                 flags=re.IGNORECASE

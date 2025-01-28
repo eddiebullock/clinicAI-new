@@ -5,11 +5,14 @@ import Anonymizer from "./components/Anonymizer";
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#1976d2",
+      main: "#1976d2", // Blue
     },
     secondary: {
-      main: "#dc004e",
+      main: "#dc004e", // Red
     },
+  },
+  typography: {
+    fontFamily: "Roboto, Arial, sans-serif",
   },
 });
 

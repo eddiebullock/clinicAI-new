@@ -1,87 +1,67 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TextField, Button, CircularProgress, Box, Typography } from "@mui/material";
+import Editor from "./Editor"; // Import updated React Quill-based Editor
+import DownloadButton from "./DownloadButton";
+import { anonymizeText, generateReport } from "../services/api";
 
 const Anonymizer = () => {
   const [text, setText] = useState("");
   const [anonymizedText, setAnonymizedText] = useState("");
   const [report, setReport] = useState("");
+  const [editedContent, setEditedContent] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isReportLoading, setIsReportLoading] = useState(false);
+
+  useEffect(() => {
+    if (report) {
+      setEditedContent(report); // Sync report to editor content
+    }
+  }, [report]);
 
   const handleAnonymize = async () => {
     if (!text.trim()) {
       setError("Please enter some text.");
       return;
     }
-  
+
     setIsLoading(true);
     setError("");
     setAnonymizedText("");
     setReport("");
-  
+
     try {
-      const response = await fetch("http://localhost:5000/api/anonymize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      });
-  
-      const data = await response.json();
-      if (response.ok) {
-        setAnonymizedText(data.anonymized_text);
-      } else {
-        setError(data.error || "Failed to anonymize text.");
-      }
+      const response = await anonymizeText(text);
+      setAnonymizedText(response.anonymized_text);
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(err.message || "Failed to anonymize text.");
     } finally {
       setIsLoading(false);
     }
-  };  
+  };
 
   const handleGenerateReport = async () => {
     if (!anonymizedText.trim()) {
       setError("Anonymized text is required to generate a report.");
       return;
     }
-  
+
     setIsReportLoading(true);
     setError("");
     setReport("");
-  
+
     try {
-      const response = await fetch("http://localhost:5000/api/generate_report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ anonymized_text: anonymizedText }),
-      });
-  
-      const data = await response.json();
-      if (response.ok) {
-        setReport(data.report);
-      } else {
-        setError(data.error || "Failed to generate report.");
-      }
+      const response = await generateReport(anonymizedText);
+      setReport(response.report || ""); // Ensure report is a string
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(err.message || "Failed to generate report.");
     } finally {
       setIsReportLoading(false);
     }
-  };  
+  };
 
   return (
-    <Box
-      sx={{
-        maxWidth: "600px",
-        margin: "auto",
-        textAlign: "center",
-      }}
-    >
+    <Box sx={{ maxWidth: "600px", margin: "auto", textAlign: "center" }}>
       <TextField
         label="Enter text to anonymize"
         multiline
@@ -132,11 +112,10 @@ const Anonymizer = () => {
       {report && (
         <Box sx={{ marginTop: "20px", textAlign: "left" }}>
           <Typography variant="h6" gutterBottom>
-            Assessment Report
+            Edit the Assessment Report
           </Typography>
-          <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-            {report}
-          </Typography>
+          <Editor content={editedContent} onContentChange={setEditedContent} />
+          <DownloadButton content={editedContent} />
         </Box>
       )}
     </Box>
