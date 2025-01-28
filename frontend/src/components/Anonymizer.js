@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { TextField, Button, CircularProgress, Box, Typography } from "@mui/material";
-import Editor from "./Editor"; // Import updated React Quill-based Editor
+import { TextField, Button, Checkbox, CircularProgress, Box, Typography, FormControlLabel } from "@mui/material";
+import DraftEditor from "./Editor";
 import DownloadButton from "./DownloadButton";
 import { anonymizeText, generateReport } from "../services/api";
 
 const Anonymizer = () => {
   const [text, setText] = useState("");
+  const [transcript, setTranscript] = useState(""); // For the assessment transcript
+  const [includeTranscript, setIncludeTranscript] = useState(false); // Checkbox state
   const [anonymizedText, setAnonymizedText] = useState("");
   const [report, setReport] = useState("");
   const [editedContent, setEditedContent] = useState("");
@@ -20,10 +22,12 @@ const Anonymizer = () => {
   }, [report]);
 
   const handleAnonymize = async () => {
-    if (!text.trim()) {
-      setError("Please enter some text.");
+    if (!text.trim() && (!includeTranscript || !transcript.trim())) {
+      setError("Please enter clinician notes or upload a transcript.");
       return;
     }
+
+    const combinedText = `${text}\n${includeTranscript && transcript ? transcript : ""}`.trim();
 
     setIsLoading(true);
     setError("");
@@ -31,7 +35,7 @@ const Anonymizer = () => {
     setReport("");
 
     try {
-      const response = await anonymizeText(text);
+      const response = await anonymizeText(combinedText);
       setAnonymizedText(response.anonymized_text);
     } catch (err) {
       setError(err.message || "Failed to anonymize text.");
@@ -63,7 +67,7 @@ const Anonymizer = () => {
   return (
     <Box sx={{ maxWidth: "600px", margin: "auto", textAlign: "center" }}>
       <TextField
-        label="Enter text to anonymize"
+        label="Enter clinician notes"
         multiline
         rows={6}
         variant="outlined"
@@ -74,6 +78,33 @@ const Anonymizer = () => {
         helperText={error}
         sx={{ marginBottom: "20px" }}
       />
+
+      <Typography variant="h6" gutterBottom>
+        Add assessment transcript
+      </Typography>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={includeTranscript}
+            onChange={(e) => setIncludeTranscript(e.target.checked)}
+          />
+        }
+        label="Include transcript"
+        sx={{ display: "block", marginBottom: "20px", textAlign: "left" }}
+      />
+      {includeTranscript && (
+        <TextField
+          label="Paste assessment transcript here"
+          multiline
+          rows={6}
+          variant="outlined"
+          fullWidth
+          value={transcript}
+          onChange={(e) => setTranscript(e.target.value)}
+          sx={{ marginBottom: "20px" }}
+        />
+      )}
+
       <Button
         variant="contained"
         color="primary"
@@ -83,6 +114,7 @@ const Anonymizer = () => {
       >
         {isLoading ? <CircularProgress size={24} color="inherit" /> : "Anonymize"}
       </Button>
+
       {anonymizedText && (
         <Box sx={{ marginTop: "20px", textAlign: "left" }}>
           <Typography variant="h6" gutterBottom>
@@ -109,12 +141,13 @@ const Anonymizer = () => {
           </Button>
         </Box>
       )}
+
       {report && (
         <Box sx={{ marginTop: "20px", textAlign: "left" }}>
           <Typography variant="h6" gutterBottom>
             Edit the Assessment Report
           </Typography>
-          <Editor content={editedContent} onContentChange={setEditedContent} />
+          <DraftEditor content={editedContent} onContentChange={setEditedContent} />
           <DownloadButton content={editedContent} />
         </Box>
       )}
