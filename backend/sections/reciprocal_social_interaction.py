@@ -2,19 +2,35 @@ import openai
 
 def generate_rsi_report(text):
     prompt = f"""
-    Generate the following sections of an autism assessment report based on the provided clinician's notes:
-    
-    1. Nonverbal Behaviors to Regulate Emotion
-    2. Developing Peer Relationships
-    3. Shared Enjoyment
-    4. Socioemotional Reciprocity
+    Generate the following sections of an autism assessment report based on the provided clinician's notes. 
+    **Ensure each section title is formatted in bold and has a clear line break.** 
+    Do not use numbered lists.
+
+    Sections:
+    - Nonverbal Behaviors to Regulate Emotion
+    - Developing Peer Relationships
+    - Shared Enjoyment
+    - Socioemotional Reciprocity
+
+    **Format Example:**
+    Nonverbal Behaviors to Regulate Emotion:
+    [Description]
+
+    Developing Peer Relationships:
+    [Description]
+
+    Shared Enjoyment:
+    [Description]
+
+    Socioemotional Reciprocity:
+    [Description]
 
     Clinician's Notes:
     ---
     {text}
     ---
 
-    Generate each section clearly and concisely. Use professional language and separate each section with its title.
+    Ensure each section follows the format where the title is bolded and followed by a paragraph explaining the findings. Do not include numbering (1., 2., etc.).
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -23,3 +39,4 @@ def generate_rsi_report(text):
         temperature=0.5,
     )
     return response['choices'][0]['message']['content']
+

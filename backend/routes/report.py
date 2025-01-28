@@ -5,6 +5,7 @@ from sections.reciprocal_social_interaction import generate_rsi_report
 from sections.rrb import generate_rrb_report
 import openai
 import os
+import re
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -25,32 +26,25 @@ def generate_report():
 
         # Generate reports for each section
         assessment = generate_assessment_report(anonymized_text)
-        print(f"Assessment generated: {assessment}")  # Debug log
-
         communication = generate_communication_report(anonymized_text)
-        print(f"Communication generated: {communication}")  # Debug log
-
         rsi = generate_rsi_report(anonymized_text)
-        print(f"Reciprocal social interaction generated: {rsi}")  # Debug log
-
         rrb = generate_rrb_report(anonymized_text)
-        print(f"Restricted and repetitive behaviors generated: {rrb}")  # Debug log
 
-        # Combine all sections into a final report
+        # Combine all sections into a final report with improved formatting
         full_report = f"""
-        Autism Assessment Report
+        <h1 style="text-align:center;">Autism Assessment Report</h1>
 
-        Section 1: Background and Key Topics
-        {assessment}
+        <h2>Background and Key Topics</h2>
+        {format_subsections(assessment)}
 
-        Section 2: Communication
-        {communication}
+        <h2>Communication</h2>
+        {format_subsections(communication)}
 
-        Section 3: Reciprocal Social Interaction
-        {rsi}
+        <h2>Reciprocal Social Interaction</h2>
+        {format_subsections(rsi)}
 
-        Section 4: Restricted and Repetitive Behaviors
-        {rrb}
+        <h2>Restricted and Repetitive Behaviors</h2>
+        {format_subsections(rrb)}
         """
 
         print("Full report generated successfully.")  # Debug log
@@ -59,3 +53,25 @@ def generate_report():
     except Exception as e:
         print("Error generating report:", str(e))
         return jsonify({"error": f"Failed to generate report: {str(e)}"}), 500
+
+def format_subsections(section_text):
+    """
+    Formats subsections to ensure proper spacing and paragraph separation.
+    """
+    formatted_text = section_text
+
+    # Ensure subheadings are recognized and bolded properly
+    formatted_text = re.sub(r"\*\*(.*?)\*\*", r"<h3>\1</h3>\n", formatted_text)
+
+    # Ensure numbered list items have a newline before them
+    formatted_text = re.sub(r"(\d+\.)", r"\n\1 ", formatted_text)
+
+    # Ensure each paragraph is wrapped properly
+    paragraphs = formatted_text.split("\n")
+    formatted_text = "".join(
+        f"<p>{para.strip()}</p>\n" if not para.strip().startswith("<h3>") else para for para in paragraphs
+    )
+
+    return formatted_text
+
+

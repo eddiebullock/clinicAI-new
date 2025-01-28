@@ -2,20 +2,32 @@ import openai
 
 def generate_rrb_report(text):
     prompt = f"""
-    Generate the following sections of an autism assessment report based on the provided clinician's notes:
+    Generate the following sections of an autism assessment report based on the provided clinician's notes.
+    **Ensure each section title is clearly separated and formatted in bold.** Do not use numbered lists.
+
+    Sections:
+    - Preoccupation
+    - Routines
+    - Repetitive Movements
+    - Sensory Sensitivities
+    - Development at and Before 36 Months
+
+    **Format Example:**
+    Preoccupation:
+    [Description]
     
-    1. Preoccupation
-    2. Routines
-    3. Repetitive Movements
-    4. Sensory Sensitivities
-    5. Development at and Before 36 Months
+    Routines:
+    [Description]
+
+    Repetitive Movements:
+    [Description]
 
     Clinician's Notes:
     ---
     {text}
     ---
 
-    Generate each section clearly and concisely. Use professional language and separate each section with its title.
+    Ensure each section is clearly formatted with a bold title followed by its content.
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
