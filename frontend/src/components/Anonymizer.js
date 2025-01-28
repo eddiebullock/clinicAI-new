@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -7,20 +7,43 @@ import {
   Box,
   Typography,
   FormControlLabel,
+  Card,
+  Snackbar,
+  Alert,
+  Stepper,
+  Step,
+  StepLabel,
+  Collapse,
 } from "@mui/material";
 import { anonymizeText, generateReport } from "../services/api";
 import { Document, Packer, Paragraph, HeadingLevel, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
+import { motion } from "framer-motion";
+
+const stripHtmlTags = (html) => {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
+  return tempDiv.textContent || tempDiv.innerText || "";
+};
 
 const Anonymizer = () => {
-  const [text, setText] = useState("");
-  const [transcript, setTranscript] = useState(""); // For the assessment transcript
-  const [includeTranscript, setIncludeTranscript] = useState(false); // Checkbox state
+  const [text, setText] = useState(localStorage.getItem("text") || "");
+  const [transcript, setTranscript] = useState(localStorage.getItem("transcript") || "");
+  const [includeTranscript, setIncludeTranscript] = useState(false);
   const [anonymizedText, setAnonymizedText] = useState("");
-  const [report, setReport] = useState(""); // Raw HTML returned by your API
+  const [report, setReport] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isReportLoading, setIsReportLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  const steps = ["Enter text", "Anonymize", "Generate report", "Download report"];
+
+  useEffect(() => {
+    localStorage.setItem("text", text);
+    localStorage.setItem("transcript", transcript);
+  }, [text, transcript]);
 
   const handleAnonymize = async () => {
     if (!text.trim() && (!includeTranscript || !transcript.trim())) {
@@ -28,16 +51,17 @@ const Anonymizer = () => {
       return;
     }
     setError("");
-
-    const combinedText = `${text}\n${includeTranscript && transcript ? transcript : ""}`.trim();
-
     setIsLoading(true);
     setAnonymizedText("");
     setReport("");
 
+    const combinedText = `${text}\n${includeTranscript && transcript ? transcript : ""}`.trim();
+
     try {
       const response = await anonymizeText(combinedText);
       setAnonymizedText(response.anonymized_text);
+      setActiveStep(1);
+      setSnackbar({ open: true, message: "Text anonymized successfully!", severity: "success" });
     } catch (err) {
       setError(err.message || "Failed to anonymize text.");
     } finally {
@@ -51,13 +75,14 @@ const Anonymizer = () => {
       return;
     }
     setError("");
-
     setIsReportLoading(true);
     setReport("");
 
     try {
       const response = await generateReport(anonymizedText);
-      setReport(response.report || ""); // Raw HTML or plain text
+      setReport(response.report || "");
+      setActiveStep(2);
+      setSnackbar({ open: true, message: "Report generated successfully!", severity: "success" });
     } catch (err) {
       setError(err.message || "Failed to generate report.");
     } finally {
@@ -65,32 +90,25 @@ const Anonymizer = () => {
     }
   };
 
-  const stripHtmlTags = (html) => {
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-    return tempDiv.textContent || tempDiv.innerText || "";
-  };
-
   const handleDownloadDocx = () => {
     if (!report.trim()) {
       setError("No report available to download.");
       return;
     }
-  
-    // Strip HTML and normalize text
+
     const textContent = stripHtmlTags(report)
-      .replace(/\n+/g, "\n") // Remove excessive line breaks
-      .replace(/###/g, "\n\n") // Ensure proper spacing for subheadings
-      .replace(/Key Mental Health Topic/g, "\nKey Mental Health Topic") // Ensure line breaks before topics
-      .replace(/\d+\.\s/g, "") // Remove numbered lists
-      .replace(/Section \d+/, "") // Remove "Section 1, 2, 3..."
-      .replace(/(Background and Key Topics|Communication|Reciprocal Social Interaction|Restricted and Repetitive Behaviors)/g, "\n$1\n") // Ensure section titles are spaced correctly
-      .replace(/([A-Za-z\s]+):/g, "\n$1:\n") // Ensure subheadings have a line break
-      .replace(/[:\n]\s+/g, "\n") // Ensure consistent spacing
+      .replace(/\n+/g, "\n")
+      .replace(/###/g, "\n\n")
+      .replace(/Key Mental Health Topic/g, "\nKey Mental Health Topic")
+      .replace(/\d+\.\s/g, "")
+      .replace(/Section \d+/, "")
+      .replace(/(Background and Key Topics|Communication|Reciprocal Social Interaction|Restricted and Repetitive Behaviors)/g, "\n$1\n")
+      .replace(/([A-Za-z\s]+):/g, "\n$1:\n")
+      .replace(/[:\n]\s+/g, "\n")
       .trim();
-  
+
     const lines = textContent.split("\n").map((line) => line.trim());
-  
+
     const doc = new Document({
       sections: [
         {
@@ -98,12 +116,12 @@ const Anonymizer = () => {
           children: [
             new Paragraph({
               text: "Autism Assessment Report",
-              heading: HeadingLevel.TITLE, // Makes it the largest title
+              heading: HeadingLevel.TITLE,
               bold: true,
-              alignment: AlignmentType.CENTER, // Centers it
-              spacing: { after: 200 }, // Adds extra space after the title
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
             }),
-            ...lines.flatMap((line, index, arr) => {
+            ...lines.flatMap((line) => {
               if (
                 ["Background and Key Topics", "Communication", "Reciprocal Social Interaction", "Restricted and Repetitive Behaviors"].includes(
                   line
@@ -118,23 +136,17 @@ const Anonymizer = () => {
                     spacing: { after: 100 },
                   }),
                 ];
-              }
-  
-              // Detect subheadings (like "Academic History/Scholarly Skills") and bold them
-              else if (line.endsWith(":") || line.match(/^[A-Za-z\s]+$/)) {
+              } else if (line.endsWith(":") || line.match(/^[A-Za-z\s]+$/)) {
                 return [
                   new Paragraph({ text: "", spacing: { after: 50 } }),
                   new Paragraph({
-                    text: line.replace(":", ""), // Remove ":" to keep it clean
+                    text: line.replace(":", ""),
                     heading: HeadingLevel.HEADING_2,
                     bold: true,
                     spacing: { after: 30 },
                   }),
                 ];
-              }
-  
-              // Ensure paragraphs are properly spaced
-              else if (line.length > 0) {
+              } else if (line.length > 0) {
                 return [
                   new Paragraph({
                     text: line,
@@ -142,124 +154,146 @@ const Anonymizer = () => {
                   }),
                 ];
               }
-  
               return [];
             }),
           ],
         },
       ],
     });
-  
-    // Generate and download the Word document
+
     Packer.toBlob(doc).then((blob) => {
       saveAs(blob, "assessment_report.docx");
     });
   };
-  
-  return (
-    <Box sx={{ maxWidth: "600px", margin: "auto", textAlign: "center" }}>
-      <TextField
-        label="Enter clinician notes"
-        multiline
-        rows={6}
-        variant="outlined"
-        fullWidth
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        error={!!error}
-        helperText={error}
-        sx={{ marginBottom: "20px" }}
-      />
 
-      <Typography variant="h6" gutterBottom>
-        Add assessment transcript
-      </Typography>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={includeTranscript}
-            onChange={(e) => setIncludeTranscript(e.target.checked)}
-          />
-        }
-        label="Include transcript"
-        sx={{ display: "block", marginBottom: "20px", textAlign: "left" }}
-      />
-      {includeTranscript && (
+  return (
+    <Box sx={{ maxWidth: "800px", margin: "auto", textAlign: "center" }}>
+      <Stepper
+        activeStep={activeStep}
+        alternativeLabel
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
+          backgroundColor: "#fff", // Matches the page background for a seamless look
+          padding: 2,
+          boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)", // Optional subtle shadow for visual separation
+          marginBottom: 3,
+        }}
+      >
+        {steps.map((label) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+
+      <Card sx={{ padding: 3, marginBottom: 3 }}>
+        <Typography variant="h6">Enter Clinician Notes</Typography>
         <TextField
-          label="Paste assessment transcript here"
+          label="Enter clinician notes"
           multiline
           rows={6}
           variant="outlined"
           fullWidth
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          sx={{ marginBottom: "20px" }}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          error={!!error}
+          helperText={error || `${text.length} characters`}
+          sx={{ marginBottom: 2 }}
         />
-      )}
 
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleAnonymize}
-        disabled={isLoading}
-        sx={{ marginBottom: "20px" }}
-      >
-        {isLoading ? <CircularProgress size={24} color="inherit" /> : "Anonymize"}
-      </Button>
+        <FormControlLabel
+          control={<Checkbox checked={includeTranscript} onChange={(e) => setIncludeTranscript(e.target.checked)} />}
+          label="Include transcript"
+        />
 
-      {anonymizedText && (
-        <Box sx={{ marginTop: "20px", textAlign: "left" }}>
-          <Typography variant="h6" gutterBottom>
-            Anonymized Text
-          </Typography>
+        <Collapse in={includeTranscript} timeout="auto" unmountOnExit>
           <TextField
-            value={anonymizedText}
+            label="Paste assessment transcript here"
             multiline
             rows={6}
             variant="outlined"
             fullWidth
-            InputProps={{
-              readOnly: true,
-            }}
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            helperText={`${transcript.length} characters`}
+            sx={{ marginTop: 2 }}
           />
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleGenerateReport}
-            disabled={isReportLoading}
-            sx={{ marginTop: "20px" }}
-          >
-            {isReportLoading ? <CircularProgress size={24} color="inherit" /> : "Generate Assessment Report"}
-          </Button>
-        </Box>
+        </Collapse>
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleAnonymize}
+          disabled={isLoading}
+          sx={{ marginTop: 2 }}
+        >
+          {isLoading ? <CircularProgress size={24} color="inherit" /> : "Anonymize"}
+        </Button>
+      </Card>
+
+      {anonymizedText && (
+        <motion.div animate={{ opacity: 1 }} initial={{ opacity: 0 }}>
+          <Card sx={{ padding: 3, marginBottom: 3 }}>
+            <Typography variant="h6">Anonymized Text</Typography>
+            <TextField
+              value={anonymizedText}
+              multiline
+              rows={6}
+              variant="outlined"
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleGenerateReport}
+              disabled={isReportLoading}
+              sx={{ marginTop: 2 }}
+            >
+              {isReportLoading ? <CircularProgress size={24} color="inherit" /> : "Generate Report"}
+            </Button>
+          </Card>
+        </motion.div>
       )}
 
       {report && (
-        <Box sx={{ marginTop: "20px", textAlign: "left" }}>
-          <Typography variant="h6" gutterBottom>
-            Assessment Report
-          </Typography>
-          <div
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: "5px",
-              padding: "10px",
-              minHeight: "300px",
-              backgroundColor: "#fafafa",
-              overflow: "auto",
-            }}
-            dangerouslySetInnerHTML={{ __html: report }}
-          ></div>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleDownloadDocx}
-            sx={{ marginTop: "20px" }}
-          >
-            Download as Word Document
-          </Button>
-        </Box>
+        <motion.div animate={{ opacity: 1 }} initial={{ opacity: 0 }}>
+          <Card sx={{ padding: 3, marginBottom: 3 }}>
+            <Typography variant="h6">Assessment Report</Typography>
+            <div
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: "5px",
+                padding: "10px",
+                minHeight: "300px",
+                backgroundColor: "#fafafa",
+                overflow: "auto",
+              }}
+              dangerouslySetInnerHTML={{ __html: report }}
+            ></div>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleDownloadDocx}
+              sx={{ marginTop: 2 }}
+            >
+              Download as Word Document
+            </Button>
+          </Card>
+        </motion.div>
       )}
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

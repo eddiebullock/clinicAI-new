@@ -2,37 +2,44 @@ import openai
 
 def generate_rrb_report(text):
     prompt = f"""
-    Generate the following sections of an autism assessment report based on the provided clinician's notes.
-    **Ensure each section title is clearly separated and formatted in bold.** Do not use numbered lists.
+    Generate a detailed autism assessment report section for the following topics based on the clinician's notes. 
+    **DO NOT USE PLACEHOLDERS LIKE '[Description]'.** Ensure each section has a detailed response.
 
-    Sections:
+    Sections to generate:
     - Preoccupation
     - Routines
     - Repetitive Movements
     - Sensory Sensitivities
     - Development at and Before 36 Months
 
-    **Format Example:**
-    Preoccupation:
-    [Description]
+    Each section should be formatted as follows:
     
-    Routines:
-    [Description]
+    **Preoccupation:**
+    Provide a complete paragraph describing the child's preoccupation behaviors.
 
-    Repetitive Movements:
-    [Description]
+    **Routines:**
+    Provide a complete paragraph detailing how the child responds to routines, any challenges, and required support.
+
+    **Repetitive Movements:**
+    Provide a detailed explanation of the child’s repetitive movements and behaviors.
+
+    **Sensory Sensitivities:**
+    Provide a full section on any sensory sensitivities observed.
+
+    **Development at and Before 36 Months:**
+    Provide detailed information on early developmental concerns, including speech, motor skills, and behavior.
 
     Clinician's Notes:
     ---
     {text}
     ---
 
-    Ensure each section is clearly formatted with a bold title followed by its content.
+    **Ensure every section has a complete response and is not left empty.**
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": prompt}],
-        max_tokens=700,
+        max_tokens=1000,  # Increase max tokens
         temperature=0.5,
     )
     return response['choices'][0]['message']['content']

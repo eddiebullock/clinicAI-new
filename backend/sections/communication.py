@@ -2,36 +2,40 @@ import openai
 
 def generate_communication_report(text):
     prompt = f"""
-    Generate the following sections of an autism assessment report based on the provided clinician's notes.
-    **Ensure each section title is clearly separated and formatted in bold.** Do not use markdown-style headings.
+    Generate a detailed autism assessment report section for the following communication aspects based on the clinician's notes. 
+    **DO NOT LEAVE SECTIONS BLANK OR USE PLACEHOLDERS LIKE '[Description]'.** 
 
-    Sections:
+    Sections to generate:
     - Gesture
     - Social Imaginative Play
     - Conversational Interchange
     - Repetitive or Unusual Speech
 
-    **Format Example:**
-    Gesture:
-    [Description]
+    Each section should be formatted as follows:
     
-    Social Imaginative Play:
-    [Description]
+    **Gesture:**
+    Provide a detailed paragraph describing the child’s use of gestures in communication, including whether they point, wave, or use facial expressions. If no information is available, explain why.
 
-    Conversational Interchange:
-    [Description]
+    **Social Imaginative Play:**
+    Provide a full paragraph on the child's ability to engage in pretend play and social play with peers. If no data is available, mention it explicitly and suggest further assessment.
+
+    **Conversational Interchange:**
+    Describe the child's ability to initiate and maintain conversations, including turn-taking and topic coherence. If the clinician's notes lack relevant information, suggest ways to assess this.
+
+    **Repetitive or Unusual Speech:**
+    Provide an explanation of any repetitive speech patterns, echolalia, or unusual speech characteristics. If no repetitive speech is reported, explicitly state that and provide general guidance.
 
     Clinician's Notes:
     ---
     {text}
     ---
 
-    Ensure each section is clearly formatted with a bold title followed by its content.
+    **Ensure each section has a complete and detailed response. If any section is missing details, state this explicitly instead of leaving it blank.**
     """
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "system", "content": prompt}],
-        max_tokens=700,
+        max_tokens=1500,  # Increased max tokens for completeness
         temperature=0.5,
     )
     return response['choices'][0]['message']['content']
