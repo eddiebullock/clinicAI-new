@@ -197,9 +197,10 @@ const Anonymizer = () => {
           variant="outlined"
           fullWidth
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          error={!!error}
-          helperText={error || `${text.length} characters`}
+          onChange={(e) => setText(e.target.value.slice(0, 1000))}  // ⏳ Prevents typing beyond 1000
+          helperText={`${Math.min(text.length, 1000)}/1000 characters`}  // 🆙 Shows correct character count
+          error={text.length > 1000}
+          inputProps={{ maxLength: 1000 }}  // ⛔ Hard limit
           sx={{ marginBottom: 2 }}
         />
 
@@ -216,8 +217,10 @@ const Anonymizer = () => {
             variant="outlined"
             fullWidth
             value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            helperText={`${transcript.length} characters`}
+            onChange={(e) => setTranscript(e.target.value.slice(0, 1000))}  // ⏳ Prevents excess input
+            helperText={`${Math.min(transcript.length, 1000)}/1000 characters`}  // 🆙 Shows correct count
+            error={transcript.length > 1000}
+            inputProps={{ maxLength: 1000 }}  // ⛔ Hard limit
             sx={{ marginTop: 2 }}
           />
         </Collapse>

@@ -165,11 +165,11 @@ const Anonymizer = () => {
         variant="outlined"
         fullWidth
         value={text}
-        onChange={(e) => setText(e.target.value)}
-        error={!!error}
-        helperText={error}
+        onChange={(e) => setText(e.target.value.slice(0, 1000))}  // Limit to 1000 characters
+        helperText={`${text.length}/1000 characters`}
         sx={{ marginBottom: "20px" }}
       />
+
 
       <Typography variant="h6" gutterBottom>
         Add assessment transcript
@@ -186,15 +186,17 @@ const Anonymizer = () => {
       />
       {includeTranscript && (
         <TextField
-          label="Paste assessment transcript here"
+          label="Enter clinician notes"
           multiline
           rows={6}
           variant="outlined"
           fullWidth
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
+          value={text}
+          onChange={(e) => setText(e.target.value.slice(0, 1000))}  // Limit to 1000 characters
+          helperText={`${text.length}/1000 characters`}
           sx={{ marginBottom: "20px" }}
         />
+
       )}
 
       <Button
