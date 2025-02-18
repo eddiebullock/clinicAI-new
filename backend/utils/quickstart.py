@@ -49,7 +49,7 @@ def generate_asd_report(transcript):
     sections = []
     
     for category, content in ASD_REPORT_STRUCTURE.items():
-        if isinstance(content, list) and isinstance(content[0], dict):  # Section with word limits
+        if isinstance(content, list) and isinstance(content[0], dict):  # Sections with word limits
             for section in content:
                 response = openai.ChatCompletion.create(
                     engine=deployment_name,
@@ -57,7 +57,7 @@ def generate_asd_report(transcript):
                         {"role": "system", "content": f"You are an expert clinical psychologist. Convert ASD assessment transcripts into formal reports with structured sections."},
                         {"role": "user", "content": f"Extract and summarize the following section from the transcript:\n\n**Section:** {section['title']}\n**Word Limit:** {section['word_limit']} words\n\nTranscript:\n{transcript}"}
                     ],
-                    max_tokens=section["word_limit"] * 2  # More flexibility for GPT output
+                    max_tokens=section["word_limit"] * 2
                 )
 
                 sections.append({
@@ -72,7 +72,7 @@ def generate_asd_report(transcript):
                     {"role": "system", "content": "You are an expert clinical psychologist. Convert ASD assessment transcripts into structured bullet points for specific categories."},
                     {"role": "user", "content": f"Extract key details for **{category}** from the transcript under the following points:\n- " + "\n- ".join(content) + f"\n\nTranscript:\n{transcript}"}
                 ],
-                max_tokens=2000
+                max_tokens=7000
             )
 
             sections.append({
@@ -86,10 +86,22 @@ def generate_asd_report(transcript):
 def generate_text():
     """
     API endpoint to process ASD assessment transcripts and return a structured report.
+    Now supports both text and JSON input.
     """
-    data = request.json
-    transcript = data.get("transcript", "")
+    # Try to read raw text
+    if request.content_type == "text/plain":
+        transcript = request.data.decode("utf-8").strip()
+    
+    # Try to read JSON input
+    elif request.content_type == "application/json":
+        data = request.json
+        transcript = data.get("transcript", "").strip()
+    
+    # Unsupported format
+    else:
+        return jsonify({"error": "Unsupported Content-Type. Use 'text/plain' or 'application/json'"}), 400
 
+    # Check if transcript exists
     if not transcript:
         return jsonify({"error": "No transcript provided"}), 400
 
