@@ -1,27 +1,22 @@
-import React from "react";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
-import Anonymizer from "./components/Anonymizer";
+import React, { useState } from "react";
+import { Container, Typography, Box } from "@mui/material";
+import FileUpload from "./components/FileUpload";
+import ReportDisplay from "./components/ReportDisplay";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#1976d2", // Blue
-    },
-    secondary: {
-      main: "#dc004e", // Red
-    },
-  },
-  typography: {
-    fontFamily: "Roboto, Arial, sans-serif",
-  },
-});
+function App() {
+  const [report, setReport] = useState(null);
 
-const App = () => {
   return (
-    <ThemeProvider theme={theme}>
-      <Anonymizer />
-    </ThemeProvider>
+    <Container maxWidth="md">
+      <Box sx={{ mt: 5, textAlign: "center" }}>
+        <Typography variant="h4" gutterBottom>
+          ADHD Assessment Report Generator
+        </Typography>
+        <FileUpload setReport={setReport} />
+        {report && <ReportDisplay report={report} />}
+      </Box>
+    </Container>
   );
-};
+}
 
 export default App;
