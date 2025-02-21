@@ -17,7 +17,7 @@ def generate_asd_report(transcript):
                 {"role": "system", "content": (
                     "You are a clinical psychologist specializing in autism assessments. "
                     "Your task is to extract relevant details from the provided transcript "
-                    "to create a structured, narrative-style psychological assessment report."
+                    "to create a structured, narrative-style psychological assessment report. "
                     "Use full sentences and paragraphs instead of bullet points. When possible, "
                     "include direct quotes from the transcript to provide authenticity. "
                     "Ensure that the section is detailed, informative, and consistent with "
@@ -35,10 +35,28 @@ def generate_asd_report(transcript):
                 )}
             ]
 
+            # Make OpenAI API call
             response = call_openai_with_retries(messages, max_tokens=word_limit * 2)
+
+            # Ensure response contains valid data
+            if not response or 'choices' not in response or not response['choices']:
+                print(f"🚨 ERROR: OpenAI returned an empty or malformed response for section '{section_title}'")
+                sections.append({
+                    "title": section_title,
+                    "content": "⚠️ Unable to generate content for this section due to insufficient data."
+                })
+                continue
+
+            generated_text = response['choices'][0].get('message', {}).get('content', "").strip()
+
+            # Ensure we have valid generated text
+            if not generated_text:
+                print(f"🚨 WARNING: Empty response received for section '{section_title}'")
+                generated_text = "⚠️ No relevant information was provided in the transcript for this section."
+
             sections.append({
                 "title": section_title,
-                "content": response['choices'][0]['message']['content'].strip()
+                "content": generated_text
             })
 
     return sections

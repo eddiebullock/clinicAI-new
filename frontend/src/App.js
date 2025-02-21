@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import { Container, Typography } from "@mui/material";
 import FileUpload from "./components/FileUpload";
 import ReportDisplay from "./components/ReportDisplay";
+import DownloadButton from "./components/DownloadButton"; // Import the button
 
 function App() {
   const [report, setReport] = useState([]); // Ensure report is state-managed properly
-
-  console.log("📢 Current Report State:", report);
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -15,6 +14,9 @@ function App() {
       </Typography>
       <FileUpload setReport={setReport} />
       <ReportDisplay report={report} />
+      
+      {/* Show the download button only if a report exists */}
+      {report.length > 0 && <DownloadButton report={report} />}
     </Container>
   );
 }

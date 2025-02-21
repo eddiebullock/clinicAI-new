@@ -36,14 +36,24 @@ def generate_adhd_report(transcript):
                 )}
             ]
 
+            # Make OpenAI API call
             response = call_openai_with_retries(messages, max_tokens=word_limit * 2)
-            generated_text = response['choices'][0]['message']['content'].strip()
 
-            # If the AI response is too generic, modify it
-            if "The transcript does not provide specific details" in generated_text or len(generated_text) < 100:
-                generated_text = f"The transcript does not contain sufficient information for a full analysis of '{section_title}'. Further details may be required to assess this aspect properly."
+            # Ensure response contains valid data
+            if not response or 'choices' not in response or not response['choices']:
+                print(f"🚨 ERROR: OpenAI returned an empty or malformed response for section '{section_title}'")
+                sections.append({
+                    "title": section_title,
+                    "content": "⚠️ Unable to generate content for this section due to insufficient data."
+                })
+                continue
 
-            generated_text = response['choices'][0]['message']['content'].strip()
+            generated_text = response['choices'][0].get('message', {}).get('content', "").strip()
+
+            # Ensure we have valid generated text
+            if not generated_text:
+                print(f"🚨 WARNING: Empty response received for section '{section_title}'")
+                generated_text = "⚠️ No relevant information was provided in the transcript for this section."
 
             # Ensure consistent naming conventions
             generated_text = generated_text.replace("the individual", "Edward Bullock").replace("they", "he")
