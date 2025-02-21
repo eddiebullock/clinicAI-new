@@ -1,35 +1,41 @@
 import React from "react";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
 
-const ReportDisplay = ({ report, handleDownloadDocx }) => {
-  if (!report) return null;
+function ReportDisplay({ report }) {
+  console.log("📝 Rendering Report:", report); // Debugging
+
+  // Ensure report is an array and not empty
+  if (!Array.isArray(report) || report.length === 0) {
+    console.warn("⚠️ Report data is empty or not an array:", report);
+    return (
+      <Typography variant="h6" sx={{ mt: 4, textAlign: "center", color: "gray" }}>
+        No report generated yet. Please upload a file and generate a report.
+      </Typography>
+    );
+  }
 
   return (
-    <Box sx={{ marginTop: "20px", textAlign: "left" }}>
-      <Typography variant="h6" gutterBottom>
-        Assessment Report
-      </Typography>
-      <div
-        style={{
-          border: "1px solid #ccc",
-          borderRadius: "5px",
-          padding: "10px",
-          minHeight: "300px",
-          backgroundColor: "#fafafa",
-          overflow: "auto",
-        }}
-        dangerouslySetInnerHTML={{ __html: report }}
-      ></div>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleDownloadDocx}
-        sx={{ marginTop: "20px" }}
-      >
-        Download as Word Document
-      </Button>
+    <Box sx={{ mt: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+      {report.map((section, index) => {
+        // Ensure section has correct structure
+        if (!section || typeof section !== "object" || !section.title || !section.content) {
+          console.warn(`⚠️ Invalid section format at index ${index}:`, section);
+          return null; // Skip invalid sections
+        }
+
+        return (
+          <Paper key={index} sx={{ p: 3, mb: 2, borderRadius: 2, backgroundColor: "#f9f9f9" }}>
+            <Typography variant="h5" sx={{ fontWeight: "bold", mb: 1 }}>
+              {section.title}
+            </Typography>
+            <Typography variant="body1" sx={{ color: "#333" }}>
+              {section.content}
+            </Typography>
+          </Paper>
+        );
+      })}
     </Box>
   );
-};
+}
 
 export default ReportDisplay;

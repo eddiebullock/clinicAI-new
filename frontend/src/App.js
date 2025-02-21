@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import { Container, Typography, Box } from "@mui/material";
+import { Container, Typography } from "@mui/material";
 import FileUpload from "./components/FileUpload";
 import ReportDisplay from "./components/ReportDisplay";
 
 function App() {
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState([]); // Ensure report is state-managed properly
+
+  console.log("📢 Current Report State:", report);
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 5, textAlign: "center" }}>
-        <Typography variant="h4" gutterBottom>
-          ADHD Assessment Report Generator
-        </Typography>
-        <FileUpload setReport={setReport} />
-        {report && <ReportDisplay report={report} />}
-      </Box>
+    <Container sx={{ mt: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Psychological Assessment Report Generator
+      </Typography>
+      <FileUpload setReport={setReport} />
+      <ReportDisplay report={report} />
     </Container>
   );
 }
